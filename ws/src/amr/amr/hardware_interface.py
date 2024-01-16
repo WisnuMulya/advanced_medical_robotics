@@ -196,15 +196,14 @@ class HardwareInterfaceNode(Node):
 
             # Verify mode update
             mode_actual, _, _ = self.packetHandler.read1ByteTxRx(self.portHandler, id, self.ADDR_OPERATING_MODE)
-            if mode_actual == mode:
-                self.operating_mode = mode_actual
-                self.get_logger().info("Updated mode to %d" % self.operating_mode)
-                return 1
-            else:
-                self.get_logger().info("Failed to update mode")
-                return 0
+        if mode_actual == mode:
+            self.operating_mode = mode_actual
+            self.get_logger().info("Updated mode to %d" % self.operating_mode)
+            return 1
+        else:
+            self.get_logger().info("Failed to update mode")
+            return 0
         
-        return
 
 
     # Callback for handling desired position
