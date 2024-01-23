@@ -3,6 +3,7 @@ from rclpy.node import Node  # Import Node class from ROS Python library
 from std_msgs.msg import Float32MultiArray  # Import message type for ROS
 from dynamixel_sdk import *  # Import Dynamixel SDK for servo control
 import numpy as np  # Import numpy for numerical operations
+from rclpy.logging import LoggingSeverity  # Import LoggingSeverity for setting log levels
 
 # Class definition for the hardware interface node
 class HardwareInterfaceNode(Node):   
@@ -11,6 +12,7 @@ class HardwareInterfaceNode(Node):
         super().__init__('hardware_interface_ros')  # Initialize the ROS node
 
         self.get_logger().info('node is alive')  # Log message indicating the node is running
+        self.get_logger().set_level(LoggingSeverity.ERROR)  # Increasing logging severity to avoid continuous printing to terminal
 
         # Dynamixel motor control related constants
         self.ADDR_TORQUE_ENABLE = 64  # Address for torque enable
@@ -37,7 +39,7 @@ class HardwareInterfaceNode(Node):
 
 
         # Limits for position, velocity, and current to prevent damage
-        self.LIMIT_POS = 30
+        self.LIMIT_POS = 100
         self.LIMIT_VEL = 10
         self.LIMIT_CURRENT = 500
 
@@ -48,6 +50,7 @@ class HardwareInterfaceNode(Node):
 
         self.DEVICENAME = '/dev/ttyACM0'
 
+        self.ACTIVATE_MOTORS = False  # Flag to activate or deactive motors
 
         self.DXL_IDs = [1, 2, 3]
 
@@ -191,8 +194,10 @@ class HardwareInterfaceNode(Node):
                 self.portHandler, id, self.ADDR_TORQUE_ENABLE, 0)
             self.packetHandler.write1ByteTxRx(
                 self.portHandler, id, self.ADDR_OPERATING_MODE, mode)
-            self.packetHandler.write1ByteTxRx(
-                self.portHandler, id, self.ADDR_TORQUE_ENABLE, 1)
+            
+            if self.ACTIVATE_MOTORS:            
+                self.packetHandler.write1ByteTxRx(
+                    self.portHandler, id, self.ADDR_TORQUE_ENABLE, 1)
 
             # Verify mode update
             mode_actual, _, _ = self.packetHandler.read1ByteTxRx(self.portHandler, id, self.ADDR_OPERATING_MODE)
