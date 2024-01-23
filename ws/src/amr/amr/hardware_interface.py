@@ -126,12 +126,13 @@ class HardwareInterfaceNode(Node):
             10
         )
 
-        self.timer_period = 1.0/100.0  # Timer period for periodic callbacks
+        self.timer_period = 1.0/40.0  # Timer period for periodic callbacks
         self.timer = self.create_timer(self.timer_period, self.joint_state_callback)  
 
         # Initialize positions of all motors
-        for id in self.DXL_IDs:
-            self.set_pos(id, 0.0)
+        self.pos_0 = [30.0, -60.0, 60.0]
+        for i, id in enumerate(self.DXL_IDs):
+            self.set_pos(id, self.pos_0[i])
 
 
 
