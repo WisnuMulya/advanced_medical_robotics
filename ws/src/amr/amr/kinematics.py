@@ -9,20 +9,35 @@ class Kinematics(Node):
         super().__init__('kinematics')
 
         self.get_logger().info('node is alive')
-        self.get_logger().set_level(LoggingSeverity.ERROR)
+        self.get_logger().set_level(LoggingSeverity.INFO)
 
-        self.subscription = self.create_subscription(
+        # Subscriptions
+        self.joint_state_subscription = self.create_subscription(
             Float32MultiArray,
             '/joint_state',
             self.joint_state_callback,
             10
         )
-        self.subscription
-        self.publisher_ = self.create_publisher(Float32MultiArray, 'joint_pos_rel', 10)
+        self.joint_state_subscription
+
+        self.dx_subscription = self.create_subscription(
+            Float32MultiArray,
+            '/dx',
+            self.dx_callback,
+            10
+        )
+        self.dx_subscription
+
+        # Publishers
+        self.joint_pos_rel_publisher = self.create_publisher(Float32MultiArray, 'joint_pos_rel', 10)
+        self.cur_pos_publisher = self.create_publisher(Float32MultiArray, 'cur_pos', 10)
 
         self.l1 = .1
         self.l2 = .1
         self.l3 = .1
+        self.cur_t1 = None
+        self.cur_t2 = None
+        self.cur_t3 = None
         self.init_pos = None
         self.tol = .005
 
@@ -71,29 +86,46 @@ class Kinematics(Node):
         t2 = np.deg2rad(joint_pos[1])
         t3 = np.deg2rad(joint_pos[2])
 
+        self.cur_t1 = t1
+        self.cur_t2 = t2
+        self.cur_t3 = t3
+
         pos, orient = self.forward_kinematics(t1,t2,t3)
 
-        if self.init_pos is None:
-            self.init_pos = pos
+        msg = Float32MultiArray()
+        msg.data = pos.tolist()
+        self.cur_pos_publisher.publish(msg)
 
-        # pos error
-        pos_error = self.init_pos - pos
-        is_below_tol = pos_error < self.tol
-        print(is_below_tol)
 
-        if not np.all(is_below_tol):
-            J_g = self.get_jacobian(t1, t2, t3)
-            J_a = J_g[:2,:]
-            J_inv = self.get_pinv_jacobian(J_a)
+    def dx_callback(self, msg):
+        """
+        Get dx from trajectory node and send 
+        """
+        dx = np.array(msg.data)
 
-            dq = np.dot(J_inv, pos_error[:2])
-            print(dq)
-            dq = np.rad2deg(dq).tolist()
-            print(dq)
+        # if self.init_pos is None:
+        #     self.init_pos = pos
 
-            msg = Float32MultiArray()
-            msg.data = dq
-            self.publisher_.publish(msg)
+        # # pos error
+        # pos_error = self.init_pos - pos
+        # is_below_tol = pos_error < self.tol
+        # print(is_below_tol)
+
+        # if not np.all(is_below_tol):
+
+        J_g = self.get_jacobian(self.cur_t1, self.cur_t2, self.cur_t3)
+        J_a = J_g[:2,:]
+        J_inv = self.get_pinv_jacobian(J_a)
+
+        dq = np.dot(J_inv, dx)
+        dq = np.rad2deg(dq).tolist()
+        print(dq)
+
+        msg = Float32MultiArray()
+        msg.data = dq
+        self.joint_pos_rel_publisher.publish(msg)
+
+    
 
 def main():
     rclpy.init()

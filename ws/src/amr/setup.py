@@ -23,7 +23,9 @@ setup(
             'hardware_interface = amr.hardware_interface:main',
             'joint_publisher = amr.joint_publisher:main',
             'joint_rel_publisher = amr.joint_rel_publisher:main',
-            'kinematics = amr.kinematics:main'
+            'kinematics = amr.kinematics:main',
+            'trajectory = amr.trajectory:main',
+            'target_pos = amr.target_pos:main'
         ],
     },
 )
