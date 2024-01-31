@@ -1,3 +1,5 @@
 ws/install/
 ws/build
 ws/log
+**.DS_Store
+**__pycache__/

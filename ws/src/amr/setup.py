@@ -20,7 +20,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'hardware_interface = amr.hardware_interface:main'
+            'hardware_interface = amr.hardware_interface:main',
+            'joint_publisher = amr.joint_publisher:main',
+            'joint_rel_publisher = amr.joint_rel_publisher:main'
         ],
     },
 )
