@@ -22,7 +22,8 @@ setup(
         'console_scripts': [
             'hardware_interface = amr.hardware_interface:main',
             'joint_publisher = amr.joint_publisher:main',
-            'joint_rel_publisher = amr.joint_rel_publisher:main'
+            'joint_rel_publisher = amr.joint_rel_publisher:main',
+            'kinematics = amr.kinematics:main'
         ],
     },
 )

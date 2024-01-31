@@ -3,6 +3,7 @@ from rclpy.node import Node  # Import Node class from ROS Python library
 from std_msgs.msg import Float32MultiArray  # Import message type for ROS
 from dynamixel_sdk import *  # Import Dynamixel SDK for servo control
 import numpy as np  # Import numpy for numerical operations
+from rclpy.logging import LoggingSeverity  # Import LoggingSeverity for setting log levels
 
 # Class definition for the hardware interface node
 class HardwareInterfaceNode(Node):   
@@ -11,6 +12,7 @@ class HardwareInterfaceNode(Node):
         super().__init__('hardware_interface_ros')  # Initialize the ROS node
 
         self.get_logger().info('node is alive')  # Log message indicating the node is running
+        self.get_logger().set_level(LoggingSeverity.INFO)  # Increasing logging severity to avoid continuous printing to terminal
 
         # Dynamixel motor control related constants
         self.ADDR_TORQUE_ENABLE = 64  # Address for torque enable
@@ -48,6 +50,7 @@ class HardwareInterfaceNode(Node):
 
         self.DEVICENAME = '/dev/ttyACM0'
 
+        self.ACTIVATE_MOTORS = True  # Flag to activate or deactive motors
 
         self.DXL_IDs = [1, 2, 3]
 
@@ -123,12 +126,13 @@ class HardwareInterfaceNode(Node):
             10
         )
 
-        self.timer_period = 1.0/100.0  # Timer period for periodic callbacks
+        self.timer_period = 1.0/40.0  # Timer period for periodic callbacks
         self.timer = self.create_timer(self.timer_period, self.joint_state_callback)  
 
         # Initialize positions of all motors
-        for id in self.DXL_IDs:
-            self.set_pos(id, 0.0)
+        self.pos_0 = [30.0, -60.0, 60.0]
+        for i, id in enumerate(self.DXL_IDs):
+            self.set_pos(id, self.pos_0[i])
 
 
 
@@ -191,8 +195,10 @@ class HardwareInterfaceNode(Node):
                 self.portHandler, id, self.ADDR_TORQUE_ENABLE, 0)
             self.packetHandler.write1ByteTxRx(
                 self.portHandler, id, self.ADDR_OPERATING_MODE, mode)
-            self.packetHandler.write1ByteTxRx(
-                self.portHandler, id, self.ADDR_TORQUE_ENABLE, 1)
+            
+            if self.ACTIVATE_MOTORS:            
+                self.packetHandler.write1ByteTxRx(
+                    self.portHandler, id, self.ADDR_TORQUE_ENABLE, 1)
 
             # Verify mode update
             mode_actual, _, _ = self.packetHandler.read1ByteTxRx(self.portHandler, id, self.ADDR_OPERATING_MODE)
@@ -324,7 +330,7 @@ class HardwareInterfaceNode(Node):
                     self.set_vel(id, 0.0)  # Stop the joint to prevent exceeding the limit
 
     
-        # self.get_logger().info("%s" % [(self.timer_period*self.joint_vel_all[0] + self.joint_pos_all[0]), (self.timer_period*self.joint_vel_all[1] + self.joint_pos_all[1])])
+        self.get_logger().info("%s" % [(self.timer_period*self.joint_vel_all[0] + self.joint_pos_all[0]), (self.timer_period*self.joint_vel_all[1] + self.joint_pos_all[1])])
 
         # Populate state message
         state_msg.data.extend(self.joint_pos_all)
