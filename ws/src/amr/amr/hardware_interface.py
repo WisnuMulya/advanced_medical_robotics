@@ -261,6 +261,9 @@ class HardwareInterfaceNode(Node):
     # Callback for handling relative joint position changes
     def joint_pos_rel_callback(self, pos_rel_msg):
         rel_positions = pos_rel_msg.data
+
+        # print(f"Received DQ: {rel_positions}")
+
         if len(rel_positions) != len(self.DXL_IDs):
             self.get_logger().info("Mismatch in the number of joints and relative position commands")
             return
@@ -273,6 +276,7 @@ class HardwareInterfaceNode(Node):
                 target_pos = self.LIMIT_POS
             elif target_pos < -self.LIMIT_POS:
                 target_pos = -self.LIMIT_POS
+            print(f"Move motor {id} to {target_pos}")
             self.set_pos(id, target_pos)
 
         return
@@ -330,7 +334,7 @@ class HardwareInterfaceNode(Node):
                     self.set_vel(id, 0.0)  # Stop the joint to prevent exceeding the limit
 
     
-        self.get_logger().info("%s" % [(self.timer_period*self.joint_vel_all[0] + self.joint_pos_all[0]), (self.timer_period*self.joint_vel_all[1] + self.joint_pos_all[1])])
+        # self.get_logger().info("%s" % [(self.timer_period*self.joint_vel_all[0] + self.joint_pos_all[0]), (self.timer_period*self.joint_vel_all[1] + self.joint_pos_all[1])])
 
         # Populate state message
         state_msg.data.extend(self.joint_pos_all)

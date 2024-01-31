@@ -102,6 +102,7 @@ class Kinematics(Node):
         Get dx from trajectory node and send 
         """
         dx = np.array(msg.data)
+        # print(f"DX received: {dx}")
 
         # if self.init_pos is None:
         #     self.init_pos = pos
@@ -119,7 +120,7 @@ class Kinematics(Node):
 
         dq = np.dot(J_inv, dx)
         dq = np.rad2deg(dq).tolist()
-        print(dq)
+        print(f"DQ Sent: {dq}")
 
         msg = Float32MultiArray()
         msg.data = dq

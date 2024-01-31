@@ -7,6 +7,7 @@ from std_msgs.msg import Float32MultiArray
 class TargetPosPub(Node):
 
     def __init__(self):
+        
         super().__init__('target_pos')  # Initialize the node with the name 'simple_publisher'
         # Create a publisher object with String message type on the topic 'advanced_topic'
         # The second argument '10' is the queue size
@@ -16,7 +17,7 @@ class TargetPosPub(Node):
         # self.timer = self.create_timer(timer_period, self.timer_callback)
         timer_period = 1
         self.timer = self.create_timer(timer_period, self.timer_callback)
-        self.target_pos = [0.20, 0.0]
+        self.target_pos = [0.10, 0.10]
         self.target_set = False
 
     def timer_callback(self):

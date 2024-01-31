@@ -51,7 +51,7 @@ class Trajectory(Node):
         dx_norm = np.linalg.norm(dx)
 
         if dx_norm > self.tolerance:
-            t_list = np.arange(0, 1, 0.01)
+            t_list = np.full(100, 0.2)
             for t in t_list:
                 tdx = t * dx
                 print(tdx.tolist())
