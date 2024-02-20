@@ -12,7 +12,7 @@ class HardwareInterfaceNode(Node):
         super().__init__('hardware_interface_ros')  # Initialize the ROS node
 
         self.get_logger().info('node is alive')  # Log message indicating the node is running
-        self.get_logger().set_level(LoggingSeverity.INFO)  # Increasing logging severity to avoid continuous printing to terminal
+        self.get_logger().set_level(LoggingSeverity.ERROR)  # Increasing logging severity to avoid continuous printing to terminal
 
         # Dynamixel motor control related constants
         self.ADDR_TORQUE_ENABLE = 64  # Address for torque enable
@@ -52,7 +52,7 @@ class HardwareInterfaceNode(Node):
 
         self.ACTIVATE_MOTORS = True  # Flag to activate or deactive motors
 
-        self.DXL_IDs = [1, 2, 3]
+        self.DXL_IDs = [1]
 
         self.get_logger().info("%s" % [self.DXL_IDs])
 
@@ -233,14 +233,21 @@ class HardwareInterfaceNode(Node):
             self.get_logger().info("Number of given velocities doesn't match number of motors")
             return
 
+
+
         # Set velocity for each motor, considering joint limits
         for idx, id in enumerate(self.DXL_IDs):
-            predicted_pos = self.get_pos(id) + self.timer_period * self.get_vel(id)
-            if (predicted_pos > self.LIMIT_POS and targets[idx] > 0.0) or \
-               (predicted_pos < -self.LIMIT_POS and targets[idx] < 0.0):
-                self.set_vel(id, 0.0)
-            else:
-                self.set_vel(id, targets[idx])
+            self.set_vel(id, targets[idx])
+        
+
+        # # Set velocity for each motor, considering joint limits
+        # for idx, id in enumerate(self.DXL_IDs):
+        #     predicted_pos = self.get_pos(id) + self.timer_period * self.get_vel(id)
+        #     if (predicted_pos > self.LIMIT_POS and targets[idx] > 0.0) or \
+        #        (predicted_pos < -self.LIMIT_POS and targets[idx] < 0.0):
+        #         self.set_vel(id, 0.0)
+        #     else:
+        #         self.set_vel(id, targets[idx])
         
         return
     
@@ -261,9 +268,6 @@ class HardwareInterfaceNode(Node):
     # Callback for handling relative joint position changes
     def joint_pos_rel_callback(self, pos_rel_msg):
         rel_positions = pos_rel_msg.data
-
-        # print(f"Received DQ: {rel_positions}")
-
         if len(rel_positions) != len(self.DXL_IDs):
             self.get_logger().info("Mismatch in the number of joints and relative position commands")
             return
@@ -276,7 +280,6 @@ class HardwareInterfaceNode(Node):
                 target_pos = self.LIMIT_POS
             elif target_pos < -self.LIMIT_POS:
                 target_pos = -self.LIMIT_POS
-            # print(f"Move motor {id} to {target_pos}")
             self.set_pos(id, target_pos)
 
         return
@@ -321,17 +324,17 @@ class HardwareInterfaceNode(Node):
             self.get_logger().info(f"Joint {id} at or beyond limit: Position = {self.joint_pos_all[idx]}")
 
 
-        # Enforce hard joint limits if in velocity mode
-        if self.operating_mode == self.MODE_VEL:
-            for idx, id in enumerate(self.DXL_IDs):
-                predicted_pos = self.joint_pos_all[idx] + self.timer_period * self.joint_vel_all[idx]
+        # # Enforce hard joint limits if in velocity mode
+        # if self.operating_mode == self.MODE_VEL:
+        #     for idx, id in enumerate(self.DXL_IDs):
+        #         predicted_pos = self.joint_pos_all[idx] + self.timer_period * self.joint_vel_all[idx]
 
-                # Check if the predicted position exceeds the limits
-                if (predicted_pos > (self.LIMIT_POS + self.limit_pos_tol)) & (self.joint_vel_all[idx] > 0.0):
-                    self.set_vel(id, 0.0)  # Stop the joint to prevent exceeding the limit
+        #         # Check if the predicted position exceeds the limits
+        #         if (predicted_pos > (self.LIMIT_POS + self.limit_pos_tol)) & (self.joint_vel_all[idx] > 0.0):
+        #             self.set_vel(id, 0.0)  # Stop the joint to prevent exceeding the limit
 
-                elif (predicted_pos < (-self.LIMIT_POS + self.limit_pos_tol)) & (self.joint_vel_all[idx] < 0.0):
-                    self.set_vel(id, 0.0)  # Stop the joint to prevent exceeding the limit
+        #         elif (predicted_pos < (-self.LIMIT_POS + self.limit_pos_tol)) & (self.joint_vel_all[idx] < 0.0):
+        #             self.set_vel(id, 0.0)  # Stop the joint to prevent exceeding the limit
 
     
         # self.get_logger().info("%s" % [(self.timer_period*self.joint_vel_all[0] + self.joint_pos_all[0]), (self.timer_period*self.joint_vel_all[1] + self.joint_pos_all[1])])

@@ -21,11 +21,16 @@ setup(
     entry_points={
         'console_scripts': [
             'hardware_interface = amr.hardware_interface:main',
+            'hardware_interface_motor_only = amr.hardware_interface_motor_only:main',
             'joint_publisher = amr.joint_publisher:main',
             'joint_rel_publisher = amr.joint_rel_publisher:main',
             'kinematics = amr.kinematics:main',
             'trajectory = amr.trajectory:main',
-            'target_pos = amr.target_pos:main'
+            'motor_only_traj = amr.motor_only_traj:main',
+            'target_pos = amr.target_pos:main',
+            'external_torque_reader = amr.external_torque_reader:main',
+            'pid_controller = amr.pid_controller:main'
+
         ],
     },
 )

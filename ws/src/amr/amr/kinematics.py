@@ -24,7 +24,7 @@ class Kinematics(Node):
         self.via_point_subscription = self.create_subscription(
             Float32MultiArray, "/via_point", self.via_point_callback, 10
         )
-        self.dx_subscription
+        self.via_point_subscription
 
         # Publishers
         self.joint_pos_rel_publisher = self.create_publisher(
@@ -139,6 +139,7 @@ class Kinematics(Node):
 
             # If not, move to it
             if norm > self.tol:
+                print(f"Moving to : {target}")
                 # Get the Jacobian
                 J_g = self.get_jacobian(self.cur_t1, self.cur_t2, self.cur_t3)
                 J_a = J_g[:2, :]
@@ -155,8 +156,8 @@ class Kinematics(Node):
 
             # If within tolerance, remove target position from list
             else:
-                self.target_pos.pop(0)
                 print(f"Successfully move to {target}")
+                self.target_pos.pop(0)
 
         # Publish current position for trajectory node
         msg = Float32MultiArray()

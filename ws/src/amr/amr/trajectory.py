@@ -29,7 +29,7 @@ class Trajectory(Node):
         # Declare other object vars
         self.cur_pos = None
         self.tolerance = 0.005
-        self.via_points_n = 10
+        self.via_points_n = 5
 
     def cur_pos_callback(self, msg):
         self.cur_pos = msg.data
