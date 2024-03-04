@@ -8,13 +8,14 @@ class TargetPosPub(Node):
 
     def __init__(self):
         
-        super().__init__('target_pos')  # Initialize the node with the name 'simple_publisher'
-        # Create a publisher object with String message type on the topic 'advanced_topic'
-        # The second argument '10' is the queue size
-        self.publisher_ = self.create_publisher(Float32MultiArray, 'target_pos', 10)
-        # timer_period = 1  # Setting the timer period to 1 second
-        # Create a timer that calls the timer_callback method every 1 second
-        # self.timer = self.create_timer(timer_period, self.timer_callback)
+        super().__init__('target_pos')
+        
+        # Declare publishers
+        self.x_des_publisher = self.create_publisher(
+            Float32MultiArray, '/x_des', 10
+        )
+
+        # Declare timer
         timer_period = 1
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.target_pos = [0.10, 0.10]
@@ -22,9 +23,10 @@ class TargetPosPub(Node):
 
     def timer_callback(self):
         if not self.target_set:
-            msg = Float32MultiArray()  # Creating a String message object
-            msg.data = self.target_pos # Setting the message data
-            self.publisher_.publish(msg)  # Publishing the message
+            msg = Float32MultiArray()
+            msg.data = self.target_pos
+            self.x_des_publisher.publish(msg)
+
             # Logging the published message to the console
             self.get_logger().info('Publishing: "%s"' % msg.data)
             self.target_set = True

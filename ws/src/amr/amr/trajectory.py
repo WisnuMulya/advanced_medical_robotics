@@ -13,52 +13,59 @@ class Trajectory(Node):
         self.get_logger().set_level(LoggingSeverity.INFO)
 
         # Declare subscriptions
-        self.cur_pos_subscription = self.create_subscription(
-            Float32MultiArray, "/cur_pos", self.cur_pos_callback, 10
+        self.cur_x_subscription = self.create_subscription(
+            Float32MultiArray, "/x", self.cur_x_callback, 10
         )
-        self.cur_pos_subscription
-
-        self.target_pos_subscription = self.create_subscription(
-            Float32MultiArray, "/target_pos", self.target_pos_callback, 10
+        self.x_des_subscription = self.create_subscription(
+            Float32MultiArray, "/x_des", self.x_des_callback, 10
         )
-        self.target_pos_subscription
 
         # Declares publishers
-        self.dx_publisher = self.create_publisher(Float32MultiArray, "/via_point", 10)
+        self.x_dot_des_publisher = self.create_publisher(
+            Float32MultiArray, "/x_dot_des", 10
+        )
 
         # Declare other object vars
-        self.cur_pos = None
-        self.tolerance = 0.005
-        self.via_points_n = 5
+        self.cur_x = [0., 0.]
+        self.x_tolerance = 0.005
+        self.via_points_distance = 0.01
+        self.via_points = list()
 
-    def cur_pos_callback(self, msg):
-        self.cur_pos = msg.data
+    # Read current robot position
+    def cur_x_callback(self, msg):
+        self.cur_x = msg.data
 
-    def target_pos_callback(self, msg):
-        target_pos = np.array(msg.data)
-        print(f"Receiving target position: {target_pos.tolist()}")
+        # Check if there are via points left to move
+        if self.via_points:
+            cur_des = [self.via_points[0]]
+            dx = np.array(cur_des) - np.array(self.cur_x)
+            dx_norm = np.linalg.norm(dx)
 
-        while self.cur_pos is None:
+            msg = Float32MultiArray()
+            if dx_norm > self.x_tolerance:
+                msg.data = cur_des.tolist()
+                self.x_dot_des_publisher.publish(msg)
+            else:
+                msg.data = 
+
+    # Generate via points when given desired position
+    def x_des_callback(self, msg):
+        x_des = np.array(msg.data)
+        print(f"Receiving desired position: {x_des.tolist()}")
+
+        while self.cur_x is None:
             continue
 
-        # Do trajectory when outside tolerance
-        cur_pos = np.array(self.cur_pos)[:2]
-        print(f"Current Position: {cur_pos.tolist()}")
-        dx = np.array(target_pos - cur_pos)
+        # Generate via points when outside tolerance
+        cur_x = np.array(self.cur_x)[:2]
+        dx = np.array(x_des - cur_x)
         dx_norm = np.linalg.norm(dx)
 
-        if dx_norm > self.tolerance:
-            t_list = np.arange(0, 1, 1 / self.via_points_n) + (1 / self.via_points_n)
-            for t in t_list:
-                tdx = t * dx
-                via_point = cur_pos + tdx
-                print(f"Via Points Generated: {via_point.tolist()}")
-
-                # Send tdx for forward feedback
-                msg = Float32MultiArray()
-                msg.data = via_point.tolist()
-                self.dx_publisher.publish(msg)
-
+        if dx_norm > self.x_tolerance:
+            via_points_n = int(dx_norm // self.via_points_distance)
+            via_points = np.ones(via_points_n)
+            self.via_points = via_points.tolist()
+            print(f"Via Points Generated: {via_points.tolist()}")
 
 def main():
     rclpy.init()

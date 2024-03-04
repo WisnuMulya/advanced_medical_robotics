@@ -29,7 +29,8 @@ setup(
             'motor_only_traj = amr.motor_only_traj:main',
             'target_pos = amr.target_pos:main',
             'external_torque_reader = amr.external_torque_reader:main',
-            'pid_controller = amr.pid_controller:main'
+            'pid_controller = amr.pid_controller:main',
+            'contact_force = amr.contact_force:main',
 
         ],
     },
