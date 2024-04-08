@@ -31,7 +31,13 @@ setup(
             'external_torque_reader = amr.external_torque_reader:main',
             'pid_controller = amr.pid_controller:main',
             'contact_force = amr.contact_force:main',
-
+            'current_motor = amr.current_motor:main',
+            'spring_force_control = amr.spring_force_control:main',
+            'plot_workspace = amr.plot_workspace:main',
+            'box = amr.box:main',
+            'texture = amr.texture:main',
+            'texture2 = amr.texture2:main',
+            'pid_move = amr.pid_move:main'
         ],
     },
 )

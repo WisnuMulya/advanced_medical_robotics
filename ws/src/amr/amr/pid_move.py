@@ -5,7 +5,7 @@ from std_msgs.msg import Float32MultiArray
 from rclpy.logging import LoggingSeverity
 
 
-class Kinematics(Node):
+class PIDMove(Node):
     def __init__(self):
         """
         Create a Kinematics node to act as the controller for the robot
@@ -21,20 +21,23 @@ class Kinematics(Node):
         )
         self.joint_state_subscription
 
-        self.via_point_subscription = self.create_subscription(
-            Float32MultiArray, "/via_point", self.via_point_callback, 10
-        )
-        self.via_point_subscription
+        # self.via_point_subscription = self.create_subscription(
+        #     Float32MultiArray, "/via_point", self.via_point_callback, 10
+        # )
+        # self.via_point_subscription
 
         # Publishers
-        self.joint_pos_rel_publisher = self.create_publisher(
-            Float32MultiArray, "joint_pos_rel", 10
+        self.joint_vel_rel_publisher = self.create_publisher(
+            Float32MultiArray, "joint_vel_rel", 10
         )
         self.cur_pos_publisher = self.create_publisher(Float32MultiArray, "cur_pos", 10)
 
         self.l1 = 0.1
         self.l2 = 0.1
         self.l3 = 0.0675
+        self.kp = 5.
+        self.ki = .25
+        self.kd = 2.
         self.cur_t1 = None
         self.cur_t2 = None
         self.cur_t3 = None
@@ -114,6 +117,9 @@ class Kinematics(Node):
     def get_pinv_jacobian(self, J):
         return np.linalg.pinv(J)
 
+    def get_p_inv_damped(self, J, damping=.1): # the higher damping factor, the harder motor 3 to rotate/back to home pos
+        return J.T @ np.linalg.inv(J @ J.T + damping**2 * np.eye(2))
+
     def joint_state_callback(self, msg):
         """
         Save current joint state and move to target position if available
@@ -130,9 +136,6 @@ class Kinematics(Node):
         pos, orient = self.forward_kinematics(t1, t2, t3)
         self.cur_pos = pos
 
-        # If there is a target position, move to it
-        # if self.target_pos:
-            # Check if the target position is within tolerance
         pos_error = self.target_pos - pos[:2]
         norm = np.linalg.norm(pos_error)
 
@@ -142,47 +145,34 @@ class Kinematics(Node):
             # Get the Jacobian
             J_g = self.get_jacobian(self.cur_t1, self.cur_t2, self.cur_t3)
             J_a = J_g[:2, :]
-            J_inv = self.get_pinv_jacobian(J_a)
+            J_inv = self.get_p_inv_damped(J_a)
 
             # Get the change in joint angles
-            dq = J_inv @ pos_error
+            dq = (J_inv @ pos_error)
             dq = np.rad2deg(dq).tolist()
 
             # Publish the change in joint angles
             msg = Float32MultiArray()
             msg.data = dq
-            self.joint_pos_rel_publisher.publish(msg)
+            self.joint_vel_rel_publisher.publish(msg)
 
-        # If within tolerance, remove target position from list
-        # else:
-        #     pass
-                # print(f"Successfully move to {target}")
-                # self.target_pos.pop(0)
 
         # Publish current position for trajectory node
         msg = Float32MultiArray()
         msg.data = pos.tolist()
         self.cur_pos_publisher.publish(msg)
 
-    def via_point_callback(self, msg):
-        """
-        Get via point from trajectory node and store it in self.target_pos lists
-        """
-        via_point = np.array(msg.data)
-        print(f"Target received: {via_point}")
-        self.target_pos.append(via_point)
-
 
 def main():
     rclpy.init()
-    kinematics_node = Kinematics()
+    pid_move_node = PIDMove()
 
     try:
-        rclpy.spin(kinematics_node)
+        rclpy.spin(pid_move_node)
     except KeyboardInterrupt:
         pass
 
-    kinematics_node.destroy_node()
+    pid_move_node.destroy_node()
     rclpy.shutdown()
 
 

@@ -1,6 +1,6 @@
 import rclpy  # Import ROS client library for Python
 from rclpy.node import Node  # Import Node class from ROS Python library
-from std_msgs.msg import Float32MultiArray  # Import message type for ROS
+from std_msgs.msg import Float32MultiArray, Float32  # Import message type for ROS
 from dynamixel_sdk import *  # Import Dynamixel SDK for servo control
 import numpy as np  # Import numpy for numerical operations
 from rclpy.logging import LoggingSeverity  # Import LoggingSeverity for setting log levels
@@ -60,6 +60,10 @@ class HardwareInterfaceNode(Node):
         self.joint_vel_all = np.zeros(len(self.DXL_IDs))
         self.joint_cur_all = np.zeros(len(self.DXL_IDs))
 
+        self.contact_force = 0
+        self.torque_array = np.zeros(3)
+        self.displacement = 0.
+
         self.TORQUE_ENABLE = 1     # Value for enabling the torque
         self.TORQUE_DISABLE = 0     # Value for disabling the torque
 
@@ -95,6 +99,14 @@ class HardwareInterfaceNode(Node):
         )
         self.sub_angle # prevent unused variable warning
 
+        # self.sub_1_angle = self.create_subscription(
+        #     Float32MultiArray,
+        #     '/joint_1_pos',
+        #     self.desired_1_pos_callback,
+        #     10
+        # )
+        # self.sub_1_angle # prevent unused variable warning
+
         self.sub_vel = self.create_subscription(
             Float32MultiArray,
             '/joint_vel',
@@ -119,18 +131,41 @@ class HardwareInterfaceNode(Node):
         )
         self.sub_pos_rel # prevent unused variable warning
 
+        self.sub_contact_force = self.create_subscription(
+            Float32,
+            'contact_force',
+            self.contact_force_callback,
+            10
+        )
+        self.sub_contact_force # prevent unused variable warning
+
+        self.sub_torque = self.create_subscription(
+            Float32MultiArray,
+            '/joint_torque',
+            self.torque_callback,
+            10
+        )
+        self.sub_torque # prevent unused variable warning
+
+        self.sub_displacement = self.create_subscription(
+            Float32MultiArray,
+            '/displacement',
+            self.displacement_callback,
+            10
+        )
+
         # Publish end-effector position
         self.publisher = self.create_publisher(
             Float32MultiArray,
             '/joint_state',
             10
         )
-
+        
         self.timer_period = 1.0/40.0  # Timer period for periodic callbacks
         self.timer = self.create_timer(self.timer_period, self.joint_state_callback)  
 
         # Initialize positions of all motors
-        self.pos_0 = [30.0, -60.0, 60.0]
+        self.pos_0 = [-45., 45.0, -45.]
         for i, id in enumerate(self.DXL_IDs):
             self.set_pos(id, self.pos_0[i])
 
@@ -225,6 +260,21 @@ class HardwareInterfaceNode(Node):
             self.set_pos(id, targets[idx])
 
         return
+    
+    # # Callback for handling desired position for 1 motor
+    # def desired_1_pos_callback(self, pos_msg):
+    #     targets = pos_msg.data
+    #     print(targets)
+
+    #     # Check if number of targets matches number of motors
+    #     if len(targets) != len(self.DXL_IDs):
+    #         self.get_logger().info("Number of given angles doesn't match number of motors")
+    #         return
+
+    #     # Set position for each motor
+    #     self.set_pos(self.DXL_IDs[0], targets[0])
+
+    #     return
 
     # Callback for handling desired velocity
     def desired_vel_callback(self, vel_msg):
@@ -301,6 +351,23 @@ class HardwareInterfaceNode(Node):
     def s16(self, value):
         return -(value & 0x8000) | (value & 0x7fff)
 
+    def torque_callback(self, msg):
+        # callback force that has been calculated from f = k*dx - c*v in 
+        torque = msg.data[:3]
+        torque_1 = torque[0] 
+        torque_2 = torque[1] 
+        torque_3 = torque[2] 
+        self.torque_array[0] = torque_1
+        self.torque_array[1] = torque_2
+        self.torque_array[2] = torque_3
+        # print(f'Torque type: {type(torque)}')
+        # print(f'Torque 1 type: {type(torque_1)}')
+        # print(f'Torque array type: {type(self.torque_array)}')
+
+    def displacement_callback(self, msg):
+        # callback force that has been calculated from f = k*dx - c*v in 
+        displacement = msg.data[0]
+        self.displacement = displacement
 
     def joint_state_callback(self):
         """
@@ -319,7 +386,6 @@ class HardwareInterfaceNode(Node):
         # Check if the joint is at or beyond its limit
         if self.joint_pos_all[idx] >= self.LIMIT_POS or self.joint_pos_all[idx] <= -self.LIMIT_POS:
             self.get_logger().info(f"Joint {id} at or beyond limit: Position = {self.joint_pos_all[idx]}")
-
 
         # Enforce hard joint limits if in velocity mode
         if self.operating_mode == self.MODE_VEL:
@@ -340,8 +406,16 @@ class HardwareInterfaceNode(Node):
         state_msg.data.extend(self.joint_pos_all)
         state_msg.data.extend(self.joint_vel_all)
         state_msg.data.extend(self.joint_cur_all)
+        # state_msg.data.extend(self.torque_array)
+        state_msg.data.append(self.displacement)
+
 
         self.publisher.publish(state_msg)
+
+    def contact_force_callback(self, contact_force_msg):
+        contact_force = float(contact_force_msg.data)
+        self.contact_force = contact_force
+    
 
 
 def main(args=None):
